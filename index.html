@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Universal 1000x Business Chatbot Engine (BYOK Gemini + Groq)</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #131b31;
+      --panel-2: #192442;
+      --border: #283863;
+      --text: #eef2ff;
+      --muted: #9fb0d9;
+      --accent: #3b82f6;
+      --accent-2: #10b981;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    header {
+      background: linear-gradient(90deg, #0f172a, #172554);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 18px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 18px;
+    }
+    header p {
+      margin: 2px 0 0;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .badge {
+      background: rgba(16, 185, 129, 0.15);
+      color: #6ee7b7;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .container {
+      display: grid;
+      grid-template-columns: 390px 1fr;
+      gap: 14px;
+      padding: 14px;
+      max-width: 1440px;
+      margin: 0 auto;
+    }
+    @media (max-width: 960px) {
+      .container { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+    .card h2 {
+      margin: 0 0 10px;
+      font-size: 15px;
+      color: #93c5fd;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin: 8px 0 4px;
+    }
+    input, select, textarea {
+      width: 100%;
+      background: var(--panel-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 13px;
+      outline: none;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--accent);
+    }
+    textarea {
+      min-height: 76px;
+      resize: vertical;
+    }
+    .row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .row > * { flex: 1; }
+    button {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.15s;
+    }
+    button:hover { filter: brightness(1.08); }
+    button.secondary {
+      background: var(--panel-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    button.success { background: var(--accent-2); color: #04130d; }
+    button.warn { background: var(--warn); color: #1f1300; }
+    button.danger { background: var(--danger); }
+    .status-box {
+      margin-top: 8px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.35);
+      color: #dbeafe;
+      white-space: pre-wrap;
+    }
+    .chat-shell {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 105px);
+      min-height: 620px;
+    }
+    @media (max-width: 960px) {
+      .chat-shell { height: auto; min-height: 540px; }
+    }
+    .chat-top {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 10px;
+    }
+    .pills {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .pill {
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding-right: 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .msg {
+      max-width: 86%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-size: 13.5px;
+      white-space: pre-wrap;
+    }
+    .msg.user {
+      align-self: flex-end;
+      background: #1d4ed8;
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+    .msg.bot {
+      align-self: flex-start;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 4px;
+    }
+    .msg.fraud {
+      border-color: rgba(239, 68, 68, 0.6);
+      background: rgba(127, 29, 29, 0.35);
+    }
+    .msg-meta {
+      font-size: 10.5px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .quick-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin: 8px 0;
+    }
+    .quick-actions button {
+      font-size: 11.5px;
+      padding: 5px 9px;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      color: #cbd5e1;
+    }
+    .composer {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .composer input {
+      flex: 1;
+      padding: 10px 12px;
+      font-size: 14px;
+    }
+    .booking-list {
+      max-height: 170px;
+      overflow-y: auto;
+      font-size: 12px;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px;
+      white-space: pre-wrap;
+    }
+    .small-note {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>1000x Universal Business Chatbot Engine</h1>
+      <p>BYOK (Gemini + Groq) • Auto Active Model Detection • Business Prompt • Link/Catalog Search • In-Chat Booking • Sales/Service/Anti-Fraud</p>
+    </div>
+    <div class="badge" id="activeModelBadge">Active Model: Not Detected Yet</div>
+  </header>
+
+  <div class="container">
+    <!-- LEFT COLUMN: SETTINGS, KEYS, AUTO-DETECT, BUSINESS PROMPT & LINK/DATA -->
+    <div>
+      <div class="card">
+        <h2>1. API Keys & Auto Model Detector</h2>
+
+        <label>Active Provider (किससे जवाब लेना है?)</label>
+        <select id="providerSelect" onchange="syncSelectedModelDisplay()">
+          <option value="gemini">Google Gemini</option>
+          <option value="groq">Groq</option>
+        </select>
+
+        <label>Gemini API Key</label>
+        <input type="password" id="geminiKey" placeholder="AIza..." />
+
+        <label>Groq API Key</label>
+        <input type="password" id="groqKey" placeholder="gsk_..." />
+
+        <div class="row" style="margin-top: 10px;">
+          <button class="success" onclick="detectActiveModels()">Auto-Detect Active Models</button>
+          <button class="secondary" onclick="saveConfig()">Save Settings</button>
+        </div>
+
+        <label>Gemini Detected / Active Model</label>
+        <select id="geminiModelSelect" onchange="syncSelectedModelDisplay()">
+          <option value="">-- Auto-Detect दबाएँ या मॉडल चुनें --</option>
+        </select>
+
+        <label>Groq Detected / Active Model</label>
+        <select id="groqModelSelect" onchange="syncSelectedModelDisplay()">
+          <option value="">-- Auto-Detect दबाएँ या मॉडल चुनें --</option>
+        </select>
+
+        <div class="status-box" id="modelStatus">यहाँ Gemini और Groq के चालू (active) मॉडल ऑटो-चेक होकर दिखेंगे।</div>
+      </div>
+
+      <div class="card">
+        <h2>2. Business Prompt & Mode Rules</h2>
+
+        <label>Mode Selection</label>
+        <select id="modeSelect">
+          <option value="AUTO">Auto (Sales + Service + Anti-Fraud अपने आप)</option>
+          <option value="SALES">Sales Mode (प्रोडक्ट/होटल/कपड़े/बुकिंग)</option>
+          <option value="SERVICE">Service Mode (बैंक/सरकारी/प्राइवेट स्टेप-बाय-स्टेप)</option>
+        </select>
+
+        <label>Business Prompt (बिज़नेस की पहचान, नियम और अंदाज़)</label>
+        <textarea id="businessPrompt">तू एक 1000x स्मार्ट बिज़नेस और सर्विस असिस्टेंट है।
+- ग्राहक की भाषा (हिंदी, हिंग्लिश, हरियाणवी या अंग्रेज़ी) में साफ़, तेज़ और भरोसेमंद जवाब दे।
+- Sales में: रेट, खासियत, उपलब्धता बताए; ग्राहक मना करे तो तुरंत दूसरा विकल्प दिखाए; और वहीं चैट में बुकिंग/ऑर्डर का अगला कदम बढ़ाए।
+- Service में: बैंक, सरकारी या प्राइवेट सेवा के लिए ज़रूरी कागज़/चीज़ें, शुरू से अंत तक स्टेप-बाय-स्टेप प्रोसेस और नियम पूरा बताए।
+- Anti-Fraud: किसी भी फ़्रॉड, फ़ेक पेमेंट/डॉक्यूमेंट, स्कैम या नियम तोड़ने की माँग पर बिना बहस किए सीधा मना करे।</textarea>
+      </div>
+
+      <div class="card">
+        <h2>3. Website/App Link & Product/Service Catalog</h2>
+
+        <label>Website / App URL (लिंक डालें)</label>
+        <div class="row">
+          <input type="url" id="siteUrl" placeholder="https://example.com/store" value="https://demo-store-and-service.local" />
+          <button class="warn" onclick="fetchFromLink()">Fetch Link</button>
+        </div>
+        <div class="small-note">नोट: कई बाहरी वेबसाइटें ब्राउज़र CORS के कारण सीधे नहीं खुलतीं—ऐसे में नीचे दिया कैटलॉग/डेटा तुरंत काम करेगा और आप उसमें अपने आइटम/सर्विस जोड़ सकते हैं।</div>
+
+        <label>Products / Services Catalog (JSON या टेक्स्ट — खोजने व बुकिंग के लिए)</label>
+        <textarea id="catalogData" style="min-height: 130px;">[
+  {
+    "id": "SHIRT-BLK-L",
+    "category": "कपड़े / Shirt",
+    "name": "Black Cotton Casual Shirt (Size L)",
+    "price": "₹799",
+    "details": "100% कॉटन, काला रंग, L साइज़, स्लिम फिट, स्टॉक उपलब्ध",
+    "alt": "Navy Blue Linen Shirt (Size L) - ₹899"
+  },
+  {
+    "id": "HTL-DLX-01",
+    "category": "होटल / Hotel",
+    "name": "Royal Comfort Deluxe Room (Starting Lowest Rate)",
+    "price": "₹1,499 / रात",
+    "details": "सबसे कम शुरुआती रेट, AC रूम, Wi-Fi, ब्रेकफ़ास्ट शामिल",
+    "alt": "Budget Standard Room - ₹999 / रात (बिना ब्रेकफ़ास्ट)"
+  },
+  {
+    "id": "SRV-KYC-01",
+    "category": "सर्विस / Service",
+    "name": "Bank / Digital KYC & Account Service Guide",
+    "price": "फ़्री / नियम अनुसार",
+    "details": "स्टेप 1: आधार व पैन तैयार रखें। स्टेप 2: मूल मोबाइल नंबर चालू रखें। स्टेप 3: वेरिफ़िकेशन पूरा करें। स्टेप 4: कन्फ़र्मेशन स्टेटस चेक करें।",
+    "alt": "Branch Visit Appointment Booking"
+  }
+]</textarea>
+
+        <div class="row" style="margin-top: 8px;">
+          <button class="secondary" onclick="loadSampleSet('clothes')">कपड़े डेमो लोड</button>
+          <button class="secondary" onclick="loadSampleSet('hotel')">होटल डेमो लोड</button>
+          <button class="secondary" onclick="loadSampleSet('service')">सर्विस डेमो लोड</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>4. In-Chat Confirmed Bookings / Orders</h2>
+        <div class="booking-list" id="bookingLog">अभी कोई बुकिंग/ऑर्डर कन्फ़र्म नहीं हुआ है।</div>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN: LIVE CHAT + IN-CHAT SEARCH, ALTERNATIVES & BOOKING -->
+    <div class="card chat-shell">
+      <div class="chat-top">
+        <div>
+          <strong>Live Customer Chat (Search • Alternatives • In-Chat Booking)</strong>
+          <div class="small-note" id="linkStatusText">Link: https://demo-store-and-service.local</div>
+        </div>
+        <div class="pills">
+          <span class="pill" id="pillProvider">Provider: GEMINI</span>
+          <span class="pill" id="pillModel">Model: None</span>
+          <span class="pill" id="pillBookingState">Booking: Idle</span>
+        </div>
+      </div>
+
+      <div class="messages" id="messages">
+        <div class="msg bot">
+          <div class="msg-meta">System Engine</div>
+          नमस्ते भाई! पहले बाईं तरफ़ अपनी <strong>Gemini</strong> या <strong>Groq</strong> API Key डालकर <strong>Auto-Detect Active Models</strong> दबाओ ताकि चालू मॉडल अपने आप सेट हो जाए। फिर नीचे से कुछ भी सर्च करो (जैसे <em>"काली शर्ट दिखाओ"</em>, <em>"सबसे कम प्राइस क्या है?"</em>, <em>"कोई और विकल्प दिखाओ"</em>, या <em>"बुक करना है"</em>)।
+        </div>
+      </div>
+
+      <div class="quick-actions">
+        <button onclick="quickSend('काली शर्ट दिखाओ')">काली शर्ट दिखाओ</button>
+        <button onclick="quickSend('सबसे कम प्राइस क्या है और मेनू/लिस्ट दिखाओ?')">सबसे कम प्राइस / लिस्ट</button>
+        <button onclick="quickSend('नहीं, कोई और विकल्प दिखाओ')">दूसरा विकल्प दिखाओ</button>
+        <button onclick="quickSend('हाँ, मुझे यहीं से बुक करना है')">यहीं से बुक करना है</button>
+        <button onclick="quickSend('बैंक सर्विस का पूरा स्टेप-बाय-स्टेप तरीका बताओ')">सर्विस स्टेप्स</button>
+        <button onclick="quickSend('फ़ेक पेमेंट स्लिप दिखाकर बुकिंग पक्की कैसे करूँ?')">फ़्रॉड टेस्ट</button>
+      </div>
+
+      <div class="composer">
+        <input type="text" id="userInput" placeholder="यहाँ मैसेज लिखें (सर्च, विकल्प, बुकिंग या सर्विस सवाल)..." onkeydown="if(event.key==='Enter') sendMessage()" />
+        <button onclick="sendMessage()">Send</button>
+        <button class="secondary" onclick="clearChat()">Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "universal_1000x_chatbot_v1";
+    let chatHistory = [];
+    let lastMatchedItems = [];
+    let bookingFlow = {
+      active: false,
+      step: 0, // 1: item, 2: qty/date, 3: name, 4: phone/detail
+      data: {}
+    };
+    let confirmedBookings = [];
+
+    window.addEventListener("DOMContentLoaded", () => {
+      loadConfig();
+      syncSelectedModelDisplay();
+      updateLinkStatus();
+    });
+
+    function saveConfig() {
+      const cfg = {
+        provider: document.getElementById("providerSelect").value,
+        geminiKey: document.getElementById("geminiKey").value.trim(),
+        groqKey: document.getElementById("groqKey").value.trim(),
+        geminiModel: document.getElementById("geminiModelSelect").value,
+        groqModel: document.getElementById("groqModelSelect").value,
+        geminiModelsList: Array.from(document.getElementById("geminiModelSelect").options).map(o => ({v: o.value, t: o.text})),
+        groqModelsList: Array.from(document.getElementById("groqModelSelect").options).map(o => ({v: o.value, t: o.text})),
+        mode: document.getElementById("modeSelect").value,
+        businessPrompt: document.getElementById("businessPrompt").value,
+        siteUrl: document.getElementById("siteUrl").value.trim(),
+        catalogData: document.getElementById("catalogData").value
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
+      updateLinkStatus();
+      setStatus("सेटिंग्स ब्राउज़र में सेव हो गईं।");
+    }
+
+    function loadConfig() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      try {
+        const cfg = JSON.parse(raw);
+        if (cfg.provider) document.getElementById("providerSelect").value = cfg.provider;
+        if (cfg.geminiKey) document.getElementById("geminiKey").value = cfg.geminiKey;
+        if (cfg.groqKey) document.getElementById("groqKey").value = cfg.groqKey;
+        if (Array.isArray(cfg.geminiModelsList) && cfg.geminiModelsList.length) {
+          populateSelect("geminiModelSelect", cfg.geminiModelsList, cfg.geminiModel);
+        }
+        if (Array.isArray(cfg.groqModelsList) && cfg.groqModelsList.length) {
+          populateSelect("groqModelSelect", cfg.groqModelsList, cfg.groqModel);
+        }
+        if (cfg.mode) document.getElementById("modeSelect").value = cfg.mode;
+        if (cfg.businessPrompt) document.getElementById("businessPrompt").value = cfg.businessPrompt;
+        if (cfg.siteUrl) document.getElementById("siteUrl").value = cfg.siteUrl;
+        if (cfg.catalogData) document.getElementById("catalogData").value = cfg.catalogData;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function populateSelect(selectId, items, selectedVal) {
+      const sel = document.getElementById(selectId);
+      sel.innerHTML = "";
+      items.forEach(item => {
+        const opt = document.createElement("option");
+        opt.value = item.v;
+        opt.textContent = item.t;
+        sel.appendChild(opt);
+      });
+      if (selectedVal && Array.from(sel.options).some(o => o.value === selectedVal)) {
+        sel.value = selectedVal;
+      }
+    }
+
+    function setStatus(msg) {
+      document.getElementById("modelStatus").textContent = msg;
+    }
+
+    function syncSelectedModelDisplay() {
+      const provider = document.getElementById("providerSelect").value;
+      const gModel = document.getElementById("geminiModelSelect").value;
+      const qModel = document.getElementById("groqModelSelect").value;
+      const activeModel = provider === "gemini" ? gModel : qModel;
+
+      document.getElementById("pillProvider").textContent = "Provider: " + provider.toUpperCase();
+      document.getElementById("pillModel").textContent = "Model: " + (activeModel || "None");
+      document.getElementById("activeModelBadge").textContent =
+        activeModel ? `Active: ${provider.toUpperCase()} → ${activeModel}` : "Active Model: Not Detected Yet";
+    }
+
+    function updateLinkStatus() {
+      const url = document.getElementById("siteUrl").value.trim() || "Not Set";
+      document.getElementById("linkStatusText").textContent = "Link: " + url;
+    }
+
+    async function detectActiveModels() {
+      const gKey = document.getElementById("geminiKey").value.trim();
+      const qKey = document.getElementById("groqKey").value.trim();
+
+      if (!gKey && !qKey) {
+        setStatus("कृपया कम से कम एक API Key (Gemini या Groq) डालें।");
+        return;
+      }
+
+      setStatus("चालू (active) मॉडल चेक किए जा रहे हैं...");
+      const logs = [];
+
+      // 1. Detect Gemini active models
+      if (gKey) {
+        try {
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(gKey)}`);
+          const data = await res.json();
+          if (!res.ok) {
+            logs.push("Gemini Error: " + (data.error?.message || res.status));
+          } else {
+            const validModels = (data.models || [])
+              .filter(m => (m.supportedGenerationMethods || []).includes("generateContent"))
+              .map(m => m.name.replace(/^models\//, ""));
+
+            // Prefer fast/versatile/flash models first
+            const preferredOrder = [
+              "gemini-2.5-flash",
+              "gemini-2.0-flash",
+              "gemini-flash-latest",
+              "gemini-2.5-pro",
+              "gemini-pro-latest"
+            ];
+            validModels.sort((a, b) => {
+              const ia = preferredOrder.indexOf(a);
+              const ib = preferredOrder.indexOf(b);
+              if (ia !== -1 && ib !== -1) return ia - ib;
+              if (ia !== -1) return -1;
+              if (ib !== -1) return 1;
+              return a.localeCompare(b);
+            });
+
+            if (validModels.length > 0) {
+              const opts = validModels.map(m => ({ v: m, t: m }));
+              populateSelect("geminiModelSelect", opts, validModels[0]);
+              logs.push(`Gemini चालू मॉडल सेट: ${validModels[0]} (${validModels.length} उपलब्ध)`);
+            } else {
+              logs.push("Gemini: कोई generateContent मॉडल नहीं मिला।");
+            }
+          }
+        } catch (err) {
+          logs.push("Gemini Network/Fetch Error: " + err.message);
+        }
+      }
+
+      // 2. Detect Groq active models
+      if (qKey) {
+        try {
+          const res = await fetch("https://api.groq.com/openai/v1/models", {
+            headers: { "Authorization": `Bearer ${qKey}` }
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            logs.push("Groq Error: " + (data.error?.message || res.status));
+          } else {
+            const activeIds = (data.data || [])
+              .filter(m => m.active !== false)
+              .map(m => m.id);
+
+            const groqPreferred = [
+              "llama-3.3-70b-versatile",
+              "llama-3.1-8b-instant",
+              "qwen/qwen3-32b",
+              "deepseek-r1-distill-llama-70b",
+              "gemma2-9b-it"
+            ];
+            activeIds.sort((a, b) => {
+              const ia = groqPreferred.indexOf(a);
+              const ib = groqPreferred.indexOf(b);
+              if (ia !== -1 && ib !== -1) return ia - ib;
+              if (ia !== -1) return -1;
+              if (ib !== -1) return 1;
+              return a.localeCompare(b);
+            });
+
+            if (activeIds.length > 0) {
+              const opts = activeIds.map(m => ({ v: m, t: m }));
+              populateSelect("groqModelSelect", opts, activeIds[0]);
+              logs.push(`Groq चालू मॉडल सेट: ${activeIds[0]} (${activeIds.length} उपलब्ध)`);
+            } else {
+              logs.push("Groq: कोई चालू मॉडल नहीं मिला।");
+            }
+          }
+        } catch (err) {
+          logs.push("Groq Network/Fetch Error: " + err.message);
+        }
+      }
+
+      syncSelectedModelDisplay();
+      saveConfig();
+      setStatus(logs.join("\n"));
+    }
+
+    async function fetchFromLink() {
+      const url = document.getElementById("siteUrl").value.trim();
+      updateLinkStatus();
+      if (!url) {
+        alert("कृपया वेबसाइट/ऐप का लिंक डालें।");
+        return;
+      }
+      setStatus(`लिंक चेक किया जा रहा है: ${url}`);
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const html = await res.text();
+        const text = html.replace(/<script[\s\S]*?<\/script>/gi, " ")
+                         .replace(/<style[\s\S]*?<\/style>/gi, " ")
+                         .replace(/<[^>]+>/g, " ")
+                         .replace(/\s+/g, " ")
+                         .trim()
+                         .slice(0, 1200);
+        setStatus(`लिंक से टेक्स्ट मिला (${text.length} अक्षर)। आप नीचे कैटलॉग/डेटा भी एडिट कर सकते हैं।`);
+        appendMessage("bot", `लिंक (${url}) से जानकारी पढ़ी गई:\n${text.slice(0, 400)}...`);
+      } catch (err) {
+        setStatus(`लिंक (${url}) ब्राउज़र CORS/नेटवर्क कारण से सीधे नहीं खुल पाया। नीचे मौजूद Catalog JSON/डेटा से सर्च व बुकिंग पूरी तरह चलेगी।`);
+      }
+    }
+
+    function loadSampleSet(type) {
+      const sets = {
+        clothes: JSON.stringify([
+          {
+            id: "CLT-BLK-SHIRT",
+            category: "कपड़े / Men Clothing",
+            name: "Black Slim Fit Cotton Shirt",
+            price: "₹799",
+            details: "रंग: काला, साइज़: S, M, L, XL, 100% कॉटन, फ़्री एक्सचेंज",
+            alt: "Olive Green Oversized T-Shirt - ₹599"
+          },
+          {
+            id: "CLT-RED-LEHENGA",
+            category: "कपड़े / Ethnic Wear",
+            name: "Maroon Festive Embroidered Suit/Lehenga Set",
+            price: "₹2,499",
+            details: "रंग: मैरून, दुपट्टा व बॉटम शामिल, पार्टी व फेस्टिवल वियर",
+            alt: "Sky Blue Georgette Designer Suit - ₹1,799"
+          }
+        ], null, 2),
+        hotel: JSON.stringify([
+          {
+            id: "HTL-MIN-01",
+            category: "होटल / Lowest Price",
+            name: "City Stay Saver Room (सबसे कम प्राइस)",
+            price: "₹999 / रात",
+            details: "सबसे कम शुरुआती रेट, साफ़ रूम, हाई-स्पीड Wi-Fi, 24x7 फ्रंट डेस्क",
+            alt: "Deluxe Balcony Room + Breakfast - ₹1,699 / रात"
+          },
+          {
+            id: "HTL-MENU-01",
+            category: "होटल / Menu List",
+            name: "Hotel Main Menu (Dal Makhani, Paneer Butter Masala, Thali, Tea/Coffee)",
+            price: "₹149 से शुरू",
+            details: "मेनू लिस्ट: पनीर बटर मसाला (₹249), दाल मखनी (₹199), डीलेक्स थाली (₹299), चाय/कॉफ़ी (₹49)",
+            alt: "Family Combo Dinner Pack - ₹699"
+          }
+        ], null, 2),
+        service: JSON.stringify([
+          {
+            id: "SRV-GOV-01",
+            category: "सरकारी / प्राइवेट सर्विस",
+            name: "Document / Certificate / Banking Service Step-by-Step Guide",
+            price: "नियम अनुसार",
+            details: "1. पहचान व पता प्रमाण तैयार करें। 2. फ़ॉर्म/आवेदन विवरण भरें। 3. वेरिफ़िकेशन व फ़ीस (यदि लागू हो) पूरी करें। 4. रेफ़रेंस नंबर से स्टेटस ट्रैक करें।",
+            alt: "Assisted Service Slot / Callback Request"
+          }
+        ], null, 2)
+      };
+      document.getElementById("catalogData").value = sets[type] || sets.clothes;
+      saveConfig();
+      appendMessage("bot", `सैंपल डेटा लोड हो गया (${type})। अब चैट में सर्च, विकल्प या बुकिंग टेस्ट करें।`);
+    }
+
+    function isFraudAttempt(text) {
+      const lower = text.toLowerCase();
+      const patterns = [
+        "fake payment", "फ़ेक पेमेंट", "नकली पेमेंट", "fake slip", "नकली रसीद",
+        "fraud", "फ़्रॉड", "फ्रॉड", "scam", "स्कैम", "forge", "नकली डॉक्यूमेंट",
+        "fake document", "bypass rule", "नियम तोड़", "चोरी का", "hack", "हैकिंग"
+      ];
+      return patterns.some(p => lower.includes(p));
+    }
+
+    function getMatchingCatalog(query) {
+      let items = [];
+      try {
+        const parsed = JSON.parse(document.getElementById("catalogData").value);
+        if (Array.isArray(parsed)) items = parsed;
+      } catch (e) {
+        return [];
+      }
+      const q = query.toLowerCase();
+      const words = q.split(/[\s,?.!।]+/).filter(w => w.length >= 2);
+      const scored = items.map(item => {
+        const hay = `${item.name || ""} ${item.category || ""} ${item.price || ""} ${item.details || ""} ${item.alt || ""}`.toLowerCase();
+        let score = 0;
+        words.forEach(w => {
+          if (hay.includes(w)) score += 2;
+        });
+        // Hindi/Hinglish keyword boosts
+        if ((q.includes("काली") || q.includes("black")) && hay.includes("काला")) score += 5;
+        if ((q.includes("कम") || q.includes("lowest") || q.includes("सस्ता") || q.includes("प्राइस")) && (hay.includes("कम") || hay.includes("₹"))) score += 4;
+        if ((q.includes("मेनू") || q.includes("menu") || q.includes("लिस्ट")) && hay.includes("मेनू")) score += 5;
+        if ((q.includes("सर्विस") || q.includes("बैंक") || q.includes("सरकारी") || q.includes("स्टेप")) && hay.includes("स्टेप")) score += 5;
+        return { item, score };
+      });
+      scored.sort((a, b) => b.score - a.score);
+      const positive = scored.filter(s => s.score > 0).map(s => s.item);
+      return positive.length > 0 ? positive : items;
+    }
+
+    function handleInChatBooking(text) {
+      const lower = text.toLowerCase().trim();
+      const wantsBook = !bookingFlow.active && (
+        lower.includes("बुक") || lower.includes("book") || lower.includes("ऑर्डर") || lower.includes("order") || lower.includes("खरीद")
+      );
+
+      if (wantsBook) {
+        const defaultItem = lastMatchedItems[0]?.name || "Selected Item / Service";
+        bookingFlow = {
+          active: true,
+          step: 1,
+          data: { suggestedItem: defaultItem }
+        };
+        document.getElementById("pillBookingState").textContent = "Booking: Step 1/4";
+        return `बिल्कुल! हम चैट के अंदर ही बुकिंग/ऑर्डर पूरा कर रहे हैं (बाहर जाने की ज़रूरत नहीं है)।\n\n**Step 1/4:** आप कौन-सा प्रोडक्ट/रूम/सर्विस बुक करना चाहते हैं? (सुझाव: *${defaultItem}* — या अपना नाम लिखें)`;
+      }
+
+      if (!bookingFlow.active) return null;
+
+      if (lower === "cancel" || lower === "रद्द" || lower === "कैंसिल") {
+        bookingFlow = { active: false, step: 0, data: {} };
+        document.getElementById("pillBookingState").textContent = "Booking: Idle";
+        return "बुकिंग प्रक्रिया रद्द कर दी गई है। आप कोई और चीज़ सर्च कर सकते हैं।";
+      }
+
+      if (bookingFlow.step === 1) {
+        bookingFlow.data.item = text;
+        bookingFlow.step = 2;
+        document.getElementById("pillBookingState").textContent = "Booking: Step 2/4";
+        return `**Step 2/4:** कितनी मात्रा (Quantity / गेस्ट / दिन) चाहिए?`;
+      }
+
+      if (bookingFlow.step === 2) {
+        bookingFlow.data.qty = text;
+        bookingFlow.step = 3;
+        document.getElementById("pillBookingState").textContent = "Booking: Step 3/4";
+        return `**Step 3/4:** कृपया अपना **पूरा नाम** बताएं।`;
+      }
+
+      if (bookingFlow.step === 3) {
+        bookingFlow.data.name = text;
+        bookingFlow.step = 4;
+        document.getElementById("pillBookingState").textContent = "Booking: Step 4/4";
+        return `**Step 4/4:** कृपया अपना **मोबाइल नंबर और पता/लोकेशन** लिखें।`;
+      }
+
+      if (bookingFlow.step === 4) {
+        bookingFlow.data.contactAndAddress = text;
+        const bookingId = "BK-" + Math.floor(100000 + Math.random() * 900000);
+        const record = {
+          id: bookingId,
+          time: new Date().toLocaleString(),
+          ...bookingFlow.data
+        };
+        confirmedBookings.unshift(record);
+        renderBookings();
+
+        bookingFlow = { active: false, step: 0, data: {} };
+        document.getElementById("pillBookingState").textContent = "Booking: Confirmed";
+
+        return `✅ **बुकिंग / ऑर्डर चैट में ही कन्फ़र्म हो गया!**\n\n• **Booking ID:** ${record.id}\n• **Item/Service:** ${record.item}\n• **Quantity/Details:** ${record.qty}\n• **Name:** ${record.name}\n• **Contact & Address:** ${record.contactAndAddress}\n\nकोई और चीज़ चाहिए या नया आइटम देखना है?`;
+      }
+
+      return null;
+    }
+
+    function renderBookings() {
+      const el = document.getElementById("bookingLog");
+      if (!confirmedBookings.length) {
+        el.textContent = "अभी कोई बुकिंग/ऑर्डर कन्फ़र्म नहीं हुआ है।";
+        return;
+      }
+      el.textContent = confirmedBookings.map(b =>
+        `[${b.id}] ${b.name} — ${b.item} (${b.qty}) | ${b.contactAndAddress}`
+      ).join("\n\n");
+    }
+
+    function quickSend(text) {
+      document.getElementById("userInput").value = text;
+      sendMessage();
+    }
+
+    function appendMessage(role, text, extraClass = "") {
+      const box = document.getElementById("messages");
+      const div = document.createElement("div");
+      div.className = `msg ${role} ${extraClass}`.trim();
+
+      const meta = document.createElement("div");
+      meta.className = "msg-meta";
+      meta.textContent = role === "user" ? "Customer (You)" : "1000x Chatbot Engine";
+
+      const body = document.createElement("div");
+      body.textContent = text;
+
+      div.appendChild(meta);
+      div.appendChild(body);
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function clearChat() {
+      chatHistory = [];
+      bookingFlow = { active: false, step: 0, data: {} };
+      document.getElementById("pillBookingState").textContent = "Booking: Idle";
+      document.getElementById("messages").innerHTML = "";
+      appendMessage("bot", "चैट साफ़ हो गई है। नया मैसेज लिखें।");
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById("userInput");
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = "";
+
+      appendMessage("user", text);
+
+      // 1. Anti-Fraud Guard
+      if (isFraudAttempt(text)) {
+        const refusal = "माफ़ कीजिए, यह चैटबॉट किसी भी फ़्रॉड, फ़ेक पेमेंट/डॉक्यूमेंट, स्कैम या नियम तोड़ने वाली गतिविधि में सहायता नहीं करता। यदि आपको वैध प्रोडक्ट, बुकिंग या सर्विस जानकारी चाहिए तो बताएं।";
+        appendMessage("bot", refusal, "fraud");
+        return;
+      }
+
+      // 2. In-Chat Booking Flow
+      const bookingReply = handleInChatBooking(text);
+      if (bookingReply) {
+        appendMessage("bot", bookingReply);
+        return;
+      }
+
+      // 3. Catalog matching & context injection
+      const matched = getMatchingCatalog(text);
+      lastMatchedItems = matched;
+      const topMatches = matched.slice(0, 3);
+
+      const provider = document.getElementById("providerSelect").value;
+      const model = provider === "gemini"
+        ? document.getElementById("geminiModelSelect").value
+        : document.getElementById("groqModelSelect").value;
+      const apiKey = provider === "gemini"
+        ? document.getElementById("geminiKey").value.trim()
+        : document.getElementById("groqKey").value.trim();
+
+      const businessPrompt = document.getElementById("businessPrompt").value.trim();
+      const mode = document.getElementById("modeSelect").value;
+      const siteUrl = document.getElementById("siteUrl").value.trim();
+
+      const systemInstruction = `${businessPrompt}
+
+Current Mode: ${mode}
+Website/App Link: ${siteUrl}
+Matched Catalog Items:
+${JSON.stringify(topMatches, null, 2)}
+
+Instructions:
+1. यदि ग्राहक कोई प्रोडक्ट/होटल/कपड़े/मेनू/कम रेट खोज रहा है, तो ऊपर दिए Matched Catalog Items से सटीक जानकारी दें, दूसरा विकल्प (alt) भी बताएं, और पूछें कि क्या यहीं चैट में बुक/ऑर्डर करना है।
+2. यदि ग्राहक मना करे या "कोई और / दूसरा विकल्प" माँगे, तो वैकल्पिक आइटम तुरंत सामने रखें।
+3. यदि ग्राहक किसी सर्विस (बैंक/सरकारी/प्राइवेट) का तरीका पूछे, तो पूरा स्टेप-बाय-स्टेप गाइड दें।
+4. किसी भी फ़्रॉड या नियम उल्लंघन पर साफ़ मना करें।`;
+
+      chatHistory.push({ role: "user", content: text });
+
+      // Fallback local response if no API key or model set yet
+      if (!apiKey || !model) {
+        const first = topMatches[0];
+        const fallback = first
+          ? `(Local Preview — API Key/Auto-Detect Model सेट करने पर लाइव AI जवाब आएगा)\n\nमिला आइटम: **${first.name}** (${first.price})\nविवरण: ${first.details}\nदूसरा विकल्प: ${first.alt || "अन्य उपलब्ध विकल्प"}\n\nक्या आप इसे **यहीं चैट में बुक** करना चाहते हैं? ("बुक करना है" लिखें)`
+          : "कृपया पहले बाईं तरफ़ Gemini या Groq की API Key डालकर Auto-Detect Active Models दबाएं।";
+        appendMessage("bot", fallback);
+        return;
+      }
+
+      try {
+        let reply = "";
+        if (provider === "gemini") {
+          const contents = [
+            ...chatHistory.slice(-6).map(m => ({
+              role: m.role === "user" ? "user" : "model",
+              parts: [{ text: m.content }]
+            }))
+          ];
+
+          const res = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                systemInstruction: { parts: [{ text: systemInstruction }] },
+                contents
+              })
+            }
+          );
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.error?.message || `Gemini HTTP ${res.status}`);
+          }
+          reply = data.candidates?.[0]?.content?.parts?.map(p => p.text).join("") || "कोई उत्तर नहीं मिला।";
+        } else {
+          const messages = [
+            { role: "system", content: systemInstruction },
+            ...chatHistory.slice(-6)
+          ];
+
+          const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+              model,
+              messages,
+              temperature: 0.5
+            })
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.error?.message || `Groq HTTP ${res.status}`);
+          }
+          reply = data.choices?.[0]?.message?.content || "कोई उत्तर नहीं मिला।";
+        }
+
+        chatHistory.push({ role: "assistant", content: reply });
+        appendMessage("bot", reply);
+      } catch (err) {
+        appendMessage("bot", `⚠️ Error (${provider.toUpperCase()} / ${model}): ${err.message}`);
+      }
+    }
+  </script>
+</body>
+</html>
